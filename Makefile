@@ -19,7 +19,7 @@ endif
 		--user $(shell id -u):$(shell id -g) \
 		-v $(PWD)/.cache:/tmp/.cache:z -v $(PWD):/go/src/docker-domains:z \
 		-w /go/src/docker-domains \
-		golang:1.18  \
+		golang:1.21  \
 		go build -ldflags="-X 'main.version=$(VERSION)'" -o dist/docker-domains ./cmd/docker-domains
 	# strip the binary
 	strip dist/docker-domains

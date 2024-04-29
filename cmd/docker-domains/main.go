@@ -14,12 +14,13 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 )
 
 var (
-	version               = "master"
+	version               = "main"
 	globalLock            = sync.Mutex{}
 	dockerDomainExtension = os.Getenv("DOCKER_DOMAIN")
 	defaultNetworkName    = os.Getenv("DOCKER_DEFAULT_NETWORK")
@@ -29,12 +30,11 @@ var (
 // This build a dnsmasq config for container.
 func buildDNSMasqConfig(container types.Container, cli *client.Client) string {
 	// get the network ip, container name and possible given hostname
-	ip := ""
+	var ip, networkName string
 	hosts := []string{}
 	if defaultNetworkName == "" {
 		defaultNetworkName = "bridge"
 	}
-	networkName := ""
 	for name, network := range container.NetworkSettings.Networks {
 		ip = network.IPAddress
 		if name != defaultNetworkName {
@@ -113,7 +113,7 @@ func writeConfig(cli *client.Client) {
 	time.Sleep(200 * time.Millisecond)
 
 	// list all containers
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{
 		Filters: filters.NewArgs(filters.Arg("status", "running")),
 	})
 	if err != nil {
@@ -127,7 +127,7 @@ func writeConfig(cli *client.Client) {
 	defer fp.Close()
 	fp.WriteString(dnsmasq.DNSMasqHeaderConfig)
 	for _, container := range containers {
-		fmt.Println("========>", container.Names[0], container.State)
+		fmt.Println("====>", container.Names[0], container.State)
 		// get the ip address
 		config := buildDNSMasqConfig(container, cli)
 		// write the config to a file
@@ -155,7 +155,7 @@ func main() {
 	dnsmasq.ConfigureSystemdResolved()
 
 	// Connect to Docker API.
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts()
 	if err != nil {
 		log.Println(err)
 	}
@@ -168,9 +168,9 @@ func main() {
 	dnsmasq.Start()
 
 	// We need to be sure that the dnsmasq is stopped when the service is killed or stopped.
-	sig := make(chan os.Signal, 0)
-	stopEvent := make(chan int, 0)
-	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
+	sig := make(chan os.Signal, 1)
+	stopEvent := make(chan int)
+	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT) // Replace syscall.SIGKILL with syscall.SIGTERM
 	go func() {
 		s := <-sig // got signal
 		fmt.Println("Got signal:", s)
