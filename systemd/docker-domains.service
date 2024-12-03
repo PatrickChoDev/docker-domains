@@ -1,5 +1,5 @@
 [Unit]
-Description=Docker Domain Names resolver
+Description=Docker Domain Names Resolver
 
 After=docker.service
 Requires=docker.service

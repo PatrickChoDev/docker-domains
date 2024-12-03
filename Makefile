@@ -3,7 +3,7 @@ CUR_BRANCH=$(shell git branch --show-current)
 VERSION=$(shell git describe --exact-match --tags $(CUR_SHA) 2>/dev/null || echo $(CUR_BRANCH)-$(CUR_SHA))
 PREFIX:=/usr/local
 
-all: build install
+all: clean build install
 
 build: dist/docker-domains
 
@@ -19,7 +19,7 @@ endif
 		--user $(shell id -u):$(shell id -g) \
 		-v $(PWD)/.cache:/tmp/.cache:z -v $(PWD):/go/src/docker-domains:z \
 		-w /go/src/docker-domains \
-		golang:1.21  \
+		golang:1.23  \
 		go build -ldflags="-X 'main.version=$(VERSION)'" -o dist/docker-domains ./cmd/docker-domains
 	# strip the binary
 	strip dist/docker-domains
